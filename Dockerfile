@@ -1,34 +1,34 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+FROM ubuntu:20.04
 
-# Set the working directory in the container
-WORKDIR /app
+EXPOSE 5000
+ENV TZ=Asia/Shanghai
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies required for OpenCV and PaddleOCR
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+# Create upload directory
+RUN mkdir -p /temp_uploads && chmod 777 /temp_uploads
+
+COPY ocr-api.py /
+COPY requirements.txt /tmp
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y \
+    python3 \
+    python3-pip \
+    libgomp1 \
     libglib2.0-0 \
     libsm6 \
+    libxrender1 \
     libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    libgcc-s1 \
-    && rm -rf /var/lib/apt/lists/*
+    # Dependencies for PyMuPDF
+    build-essential \
+    libmupdf-dev \
+    python3-dev \
+    && pip install -r /tmp/requirements.txt \
+    && apt-get -y remove python3-pip \
+    && apt-get -y autoremove \
+    && apt-get -y install --no-install-recommends python3-setuptools \
+    && rm -rf /var/lib/{apt,dpkg,cache,log}/ /root/.cache /tmp/*
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application's code into the container at /app
-COPY . .
-
-# Make port 5000 available to the world outside this container
-EXPOSE 5000
-
-# Define environment variable (fixed syntax)
-ENV NAME=World
-
-# Run ocr-api.py when the container launches
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "ocr-api:app"]
+VOLUME ["/temp_uploads"]
+CMD ["python3", "/ocr-api.py"]

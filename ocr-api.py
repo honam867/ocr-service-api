@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+# coding: utf-8
+# @2022-04-19 20:52:24
+# vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4:
+
 from flask import Flask, request, jsonify, make_response
 import os
 import time
@@ -6,10 +11,12 @@ from datetime import datetime
 import logging
 from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF for PDF processing
+from paddleocr import PaddleOCR
 from PIL import Image
 import io
 import base64
 import json
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,34 +43,37 @@ UPLOAD_FOLDER = 'temp_uploads'
 # Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Initialize PaddleOCR instances for both languages
-try:
-    from paddleocr import PaddleOCR
+# Initialize PaddleOCR instances lazily to avoid duplicate initialization in debug mode
+ocr_en = None
+ocr_vi = None
+
+def get_ocr_instance(language='en'):
+    """Get or initialize OCR instance for the specified language"""
+    global ocr_en, ocr_vi
     
-    # Initialize OCR for English
-    ocr_en = PaddleOCR(
-        use_angle_cls=True, 
-        lang='en',
-        use_doc_orientation_classify=True,
-        use_doc_unwarping=True,
-        use_textline_orientation=True,
-        show_log=False
-    )
-    
-    # Initialize OCR for Vietnamese
-    ocr_vi = PaddleOCR(
-        use_angle_cls=True, 
-        lang='vi',
-        use_doc_orientation_classify=True,
-        use_doc_unwarping=True,
-        use_textline_orientation=True,
-        show_log=False
-    )
-    
-    logger.info("PaddleOCR instances initialized successfully")
-except Exception as e:
-    logger.error(f"Failed to initialize PaddleOCR: {e}")
-    raise
+    try:
+        if language == 'en' and ocr_en is None:
+            logger.info("Initializing PaddleOCR for English...")
+            ocr_en = PaddleOCR(
+                lang='en',
+                use_angle_cls=True,
+                use_gpu=False
+            )
+            logger.info("PaddleOCR English instance initialized successfully")
+        elif language == 'vi' and ocr_vi is None:
+            logger.info("Initializing PaddleOCR for Vietnamese...")
+            ocr_vi = PaddleOCR(
+                lang='vi',
+                use_angle_cls=True,
+                use_gpu=False
+            )
+            logger.info("PaddleOCR Vietnamese instance initialized successfully")
+        
+        return ocr_en if language == 'en' else ocr_vi
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize PaddleOCR for {language}: {e}")
+        raise
 
 def allowed_file(filename):
     """Check if uploaded file has allowed extension"""
@@ -94,21 +104,19 @@ def pdf_to_images(pdf_path):
 
 def perform_ocr(images, language='en'):
     """Perform OCR on images with specified language"""
-    ocr_instance = ocr_en if language == 'en' else ocr_vi
+    ocr_instance = get_ocr_instance(language)
     results = []
     
     for img_data in images:
         page_num = img_data['page']
         img = img_data['image']
         
-        # Convert PIL Image to bytes for PaddleOCR
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='PNG')
-        img_bytes.seek(0)
+        # Convert PIL Image to numpy array for PaddleOCR
+        img_np = np.array(img.convert('RGB'))
         
         try:
-            # Perform OCR
-            result = ocr_instance.ocr(img_bytes.getvalue())
+            # Perform OCR on the numpy array
+            result = ocr_instance.ocr(img_np)
             
             # Extract text from result
             page_text = ""
@@ -121,7 +129,7 @@ def perform_ocr(images, language='en'):
             results.append({
                 'page': page_num,
                 'text': page_text.strip(),
-                'line_count': len([line for line in page_text.split('\n') if line.strip()])
+                'line_count': len(page_text.strip().split('\n'))
             })
             
         except Exception as e:
@@ -328,16 +336,19 @@ def internal_error(e):
     return response, 500
 
 if __name__ == '__main__':
-    print("🚀 Starting OCR API Service...")
-    print("📚 Supported languages: English (en), Vietnamese (vi)")
-    print("📄 Supported formats: PDF")
-    print("🌐 Access the API at: http://localhost:5000")
-    print("📖 API Documentation: http://localhost:5000")
-    print("🔧 Test endpoint: POST http://localhost:5000/extract-text")
+    import os
+    # Only print startup messages when not in reloader process
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        print("🚀 Starting OCR API Service...")
+        print("📚 Supported languages: English (en), Vietnamese (vi)")
+        print("📄 Supported formats: PDF")
+        print("🌐 Access the API at: http://localhost:5000")
+        print("📖 API Documentation: http://localhost:5000")
+        print("🔧 Test endpoint: POST http://localhost:5000/extract-text")
     
     app.run(
         host='0.0.0.0',
         port=5000,
         debug=True,
         threaded=True
-    ) 
+    )
