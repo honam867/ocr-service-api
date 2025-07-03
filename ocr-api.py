@@ -151,7 +151,7 @@ def home():
         'status': 'running',
         'supported_languages': ['en', 'vi'],
         'supported_formats': ['pdf'],
-        'version': '1.0.0',
+        'version': '1.0.1',
         'endpoints': {
             'extract_text': '/extract-text (POST)',
             'health': '/ (GET)'
@@ -272,7 +272,7 @@ def extract_text():
                 'timestamp': datetime.now().isoformat(),
                 'processing_info': {
                     'ocr_engine': 'PaddleOCR',
-                    'version': '1.0.0'
+                    'version': '1.0.1'
                 }
             }
             

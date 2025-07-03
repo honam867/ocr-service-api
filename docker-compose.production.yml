@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  ocr-service:
+    image: jackipro1509/ocr-service:latest
+    container_name: ocr-service-prod
+    ports:
+      - "5000:5000"  # Internal port, use Nginx as reverse proxy
+    volumes:
+      - ./uploads:/temp_uploads
+      - ./logs:/var/log/ocr
+    environment:
+      - TZ=UTC
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Optional: Add Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ocr-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # For SSL certificates
+    depends_on:
+      - ocr-service
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+# Optional: Add networks for better isolation
+networks:
+  ocr-network:
+    driver: bridge 

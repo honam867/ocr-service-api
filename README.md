@@ -1,5 +1,11 @@
 # OCR API Service
 
+Rebuild: docker build -t jackipro1509/ocr-service:latest .
+Push: docker push jackipro1509/ocr-service:latest
+
+docker pull jackipro1509/ocr-service:latest
+docker run -d --name ocr-service -p 5000:5000 jackipro1509/ocr-service:latest
+
 A powerful REST API service for extracting text from PDF files using PaddleOCR. Supports both English and Vietnamese languages with detailed metrics and performance information.
 
 ## 🚀 Features
@@ -52,6 +58,7 @@ python ocr-api.py
 ```
 
 You should see output like:
+
 ```
 🚀 Starting OCR API Service...
 📚 Supported languages: English (en), Vietnamese (vi)
@@ -64,6 +71,7 @@ You should see output like:
 ## 📖 API Documentation
 
 ### Base URL
+
 ```
 http://localhost:5000
 ```
@@ -71,11 +79,13 @@ http://localhost:5000
 ### Endpoints
 
 #### 1. Health Check
+
 - **URL**: `/`
 - **Method**: `GET`
 - **Description**: Check if the service is running
 
 **Response:**
+
 ```json
 {
   "service": "OCR API Service",
@@ -91,15 +101,18 @@ http://localhost:5000
 ```
 
 #### 2. Extract Text from PDF
+
 - **URL**: `/extract-text`
 - **Method**: `POST`
 - **Content-Type**: `multipart/form-data`
 
 **Parameters:**
+
 - `file` (required): PDF file to process
 - `language` (optional): Language for OCR (`en` or `vi`). Default: `en`
 
 **Response Example:**
+
 ```json
 {
   "success": true,
@@ -141,10 +154,12 @@ http://localhost:5000
 1. **Open Postman**
 
 2. **Create a New Request**
+
    - Set method to `POST`
    - URL: `http://localhost:5000/extract-text`
 
 3. **Set up the Request**
+
    - Go to the `Body` tab
    - Select `form-data`
    - Add key `file` with type `File`
@@ -262,17 +277,20 @@ UPLOAD_FOLDER = 'temp_uploads'
 ### Common Issues
 
 1. **PaddleOCR Installation Failed**
+
    ```bash
    pip install --upgrade pip
    pip install paddlepaddle paddleocr
    ```
 
 2. **PyMuPDF Installation Issues**
+
    ```bash
    pip install --upgrade pymupdf
    ```
 
 3. **Memory Issues with Large PDFs**
+
    - Reduce PDF file size
    - Increase system memory
    - Process pages in batches
@@ -306,10 +324,11 @@ The API returns detailed error messages:
 ## 🤝 Support
 
 For issues or questions:
+
 1. Check the troubleshooting section
 2. Review the error messages in the API response
 3. Check the console logs where the service is running
 
 ## 📝 License
 
-This project is open source and available under the MIT License. 
+This project is open source and available under the MIT License.
