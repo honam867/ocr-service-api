@@ -341,8 +341,9 @@ if __name__ == '__main__':
         print("📚 Supported languages: English (en), Vietnamese (vi)")
         print("📄 Supported formats: PDF")
         print("🌐 Access the API at: http://localhost:5000")
-        print("📖 API Documentation: http://localhost:5000")
         print("🔧 Test endpoint: POST http://localhost:5000/extract-text")
+        print("🌐 Access the API on vps: http://66.45.236.105:5000")
+        print("🔧 Test endpoint: POST http://66.45.236.105:5000/extract-text")
     
     app.run(
         host='0.0.0.0',
