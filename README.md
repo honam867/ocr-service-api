@@ -1,90 +1,70 @@
-# OCR API Service
+# OCR Service API
 
-Rebuild: docker build -t jackipro1509/ocr-service:latest .
-Push: docker push jackipro1509/ocr-service:latest
-
-docker pull jackipro1509/ocr-service:latest
-docker run -d --name ocr-service -p 5000:5000 jackipro1509/ocr-service:latest
-
-docker-compose pull
-docker-compose down
-docker-compose up -d
-
-# DOCKER WORKFLOW (Additional steps you need)
-docker build -t ocr-service:latest .
-docker tag ocr-service:latest jackipro1509/ocr-service:latest
-docker push jackipro1509/ocr-service:latest
-
-# OPTIONAL: VERSION TAGGING
-docker tag ocr-service:latest jackipro1509/ocr-service:v1.0.1
-docker push jackipro1509/ocr-service:v1.0.1
-
-A powerful REST API service for extracting text from PDF files using PaddleOCR. Supports both English and Vietnamese languages with detailed metrics and performance information.
+A robust REST API service for extracting text from PDF documents using advanced OCR technology. Built with Flask and PaddleOCR, this service provides high-quality text extraction with support for multiple languages.
 
 ## 🚀 Features
 
-- **PDF Text Extraction**: Extract text from PDF files with high accuracy
-- **Multi-language Support**: English (`en`) and Vietnamese (`vi`)
-- **Performance Metrics**: Execution time, character count, word count, line count
-- **Page-by-page Analysis**: Detailed breakdown per PDF page
-- **RESTful API**: Easy integration with any application
-- **File Upload**: Support for PDF files up to 16MB
-- **Error Handling**: Comprehensive error responses
-- **Clean Architecture**: Automatic temporary file cleanup
+- **PDF Text Extraction**: Extract text from PDF documents with high accuracy
+- **Multi-language Support**: Currently supports English (`en`) and Vietnamese (`vi`)
+- **RESTful API**: Simple and intuitive REST endpoints
+- **Docker Support**: Containerized deployment for easy scaling
+- **Health Monitoring**: Built-in health check endpoints
+- **Error Handling**: Comprehensive error handling with detailed responses
+- **File Size Limits**: Configurable file size limits (default: 16MB)
+- **CORS Enabled**: Cross-origin resource sharing support
+
+## 🛠️ Technology Stack
+
+- **Backend**: Python 3.x, Flask
+- **OCR Engine**: PaddleOCR
+- **PDF Processing**: PyMuPDF (fitz)
+- **Image Processing**: Pillow, OpenCV
+- **Containerization**: Docker
+- **Deployment**: Docker Compose
 
 ## 📋 Prerequisites
 
-- Python 3.8 or higher
-- pip (Python package installer)
+- Python 3.8+
+- Docker (for containerized deployment)
+- At least 2GB RAM (recommended for OCR processing)
 
-## 🛠️ Installation & Setup
+## 🚀 Quick Start
 
-### 1. Clone or Download the Project
+### Using Docker (Recommended)
 
-Save the `ocr-api.py` and `requirements.txt` files in your project directory.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ocr-service
+   ```
 
-### 2. Create Virtual Environment (Recommended)
+2. **Run with Docker Compose**
+   ```bash
+   docker-compose up -d
+   ```
 
-```bash
-# Create virtual environment
-python -m venv ocr-env
+3. **Verify the service is running**
+   ```bash
+   curl http://localhost:5000/
+   ```
 
-# Activate virtual environment
-# On Windows:
-ocr-env\Scripts\activate
-# On macOS/Linux:
-source ocr-env/bin/activate
-```
+### Manual Installation
 
-### 3. Install Dependencies
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. **Run the service**
+   ```bash
+   python ocr-api.py
+   ```
 
-**Note**: The first time you run the service, PaddleOCR will automatically download the required models for English and Vietnamese. This may take a few minutes.
-
-### 4. Run the Service
-
-```bash
-python ocr-api.py
-```
-
-You should see output like:
-
-```
-🚀 Starting OCR API Service...
-📚 Supported languages: English (en), Vietnamese (vi)
-📄 Supported formats: PDF
-🌐 Access the API at: http://localhost:5000
-📖 API Documentation: http://localhost:5000
-🔧 Test endpoint: POST http://localhost:5000/extract-text
-```
+The service will be available at `http://localhost:5000`
 
 ## 📖 API Documentation
 
 ### Base URL
-
 ```
 http://localhost:5000
 ```
@@ -92,20 +72,18 @@ http://localhost:5000
 ### Endpoints
 
 #### 1. Health Check
-
-- **URL**: `/`
-- **Method**: `GET`
-- **Description**: Check if the service is running
+```http
+GET /
+```
 
 **Response:**
-
 ```json
 {
   "service": "OCR API Service",
   "status": "running",
   "supported_languages": ["en", "vi"],
   "supported_formats": ["pdf"],
-  "version": "1.0.0",
+  "version": "1.0.2",
   "endpoints": {
     "extract_text": "/extract-text (POST)",
     "health": "/ (GET)"
@@ -114,234 +92,198 @@ http://localhost:5000
 ```
 
 #### 2. Extract Text from PDF
+```http
+POST /extract-text
+```
 
-- **URL**: `/extract-text`
-- **Method**: `POST`
-- **Content-Type**: `multipart/form-data`
+**Request Parameters:**
+- `file` (required): PDF file (max 16MB)
+- `language` (optional): Language code (`en` or `vi`, default: `en`)
 
-**Parameters:**
+**Content-Type:** `multipart/form-data`
 
-- `file` (required): PDF file to process
-- `language` (optional): Language for OCR (`en` or `vi`). Default: `en`
-
-**Response Example:**
-
+**Success Response (200):**
 ```json
 {
   "success": true,
   "data": {
-    "extracted_text": "Your extracted text here...",
+    "extracted_text": "Full extracted text from all pages",
     "language": "en",
     "metrics": {
-      "execution_time_seconds": 2.45,
-      "character_count": 1250,
-      "word_count": 180,
-      "line_count": 25,
+      "execution_time_seconds": 1.234,
+      "character_count": 1500,
+      "word_count": 250,
+      "line_count": 45,
       "page_count": 3
     },
     "file_info": {
       "filename": "document.pdf",
-      "size_mb": 0.85
+      "size_mb": 2.5
     },
     "page_details": [
       {
         "page": 1,
-        "character_count": 450,
-        "line_count": 8,
-        "has_error": false
+        "text": "Page 1 content...",
+        "line_count": 15
       }
     ]
   },
-  "timestamp": "2024-01-15T10:30:45.123456",
-  "processing_info": {
-    "ocr_engine": "PaddleOCR",
-    "version": "1.0.0"
-  }
+  "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
 
-## 🧪 Testing with Postman
+**Error Responses:**
 
-### Method 1: Using Postman GUI
+- **400 Bad Request**: Invalid file format or missing file
+- **413 Payload Too Large**: File exceeds 16MB limit
+- **500 Internal Server Error**: OCR processing failed
 
-1. **Open Postman**
+## 💻 Usage Examples
 
-2. **Create a New Request**
-
-   - Set method to `POST`
-   - URL: `http://localhost:5000/extract-text`
-
-3. **Set up the Request**
-
-   - Go to the `Body` tab
-   - Select `form-data`
-   - Add key `file` with type `File`
-   - Choose your PDF file
-   - (Optional) Add key `language` with value `en` or `vi`
-
-4. **Send the Request**
-   - Click `Send`
-   - Review the response
-
-### Method 2: Using cURL
-
+### cURL
 ```bash
-# Test health check
-curl http://localhost:5000/
-
-# Extract text (English)
-curl -X POST \
-  -F "file=@/path/to/your/document.pdf" \
-  -F "language=en" \
-  http://localhost:5000/extract-text
-
-# Extract text (Vietnamese)
-curl -X POST \
-  -F "file=@/path/to/your/document.pdf" \
-  -F "language=vi" \
-  http://localhost:5000/extract-text
+curl -X POST http://localhost:5000/extract-text \
+  -F "file=@document.pdf" \
+  -F "language=en"
 ```
 
-### Method 3: Postman Collection
+### Python
+```python
+import requests
 
-You can import this collection into Postman:
+with open('document.pdf', 'rb') as file:
+    files = {'file': file}
+    data = {'language': 'en'}
+    
+    response = requests.post(
+        'http://localhost:5000/extract-text',
+        files=files,
+        data=data
+    )
+    
+    result = response.json()
+    print(result['data']['extracted_text'])
+```
 
-```json
-{
-  "info": {
-    "name": "OCR API Service",
-    "description": "Collection for testing OCR API endpoints"
-  },
-  "item": [
-    {
-      "name": "Health Check",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:5000/",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": [""]
-        }
-      }
-    },
-    {
-      "name": "Extract Text (English)",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "file",
-              "type": "file",
-              "src": []
-            },
-            {
-              "key": "language",
-              "value": "en",
-              "type": "text"
-            }
-          ]
-        },
-        "url": {
-          "raw": "http://localhost:5000/extract-text",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "5000",
-          "path": ["extract-text"]
-        }
-      }
-    }
-  ]
-}
+### JavaScript
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+formData.append('language', 'en');
+
+fetch('http://localhost:5000/extract-text', {
+  method: 'POST',
+  body: formData
+})
+.then(response => response.json())
+.then(data => {
+  console.log('Extracted text:', data.data.extracted_text);
+});
+```
+
+## 🚢 Deployment
+
+### Docker Deployment
+
+The service includes Docker configurations for easy deployment:
+
+- **Development**: `docker-compose.yml`
+- **Production**: `docker-compose.production.yml`
+
+#### Production Deployment
+```bash
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### VPS Deployment
+
+See `VPS_DEPLOYMENT.md` for detailed VPS deployment instructions.
+
+### Docker Hub
+
+Pre-built images are available on Docker Hub:
+```bash
+docker pull jackipro1509/ocr-service:latest
 ```
 
 ## 🔧 Configuration
 
-### Environment Variables (Optional)
+### Environment Variables
 
-You can customize the service by modifying these variables in `ocr-api.py`:
+- `TZ`: Timezone (default: `Asia/Shanghai`)
+- `MAX_CONTENT_LENGTH`: Maximum file size in bytes (default: 16MB)
 
-```python
-# File size limit (default: 16MB)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-# Server port (default: 5000)
-app.run(port=5000)
-
-# Upload folder (default: temp_uploads)
-UPLOAD_FOLDER = 'temp_uploads'
+### File Structure
+```
+ocr-service/
+├── ocr-api.py              # Main Flask application
+├── requirements.txt        # Python dependencies
+├── Dockerfile             # Docker image configuration
+├── docker-compose.yml     # Docker Compose for development
+├── docker-compose.production.yml  # Production configuration
+├── api-specs.md          # Detailed API specifications
+├── temp_uploads/         # Temporary file storage
+├── uploads/              # File upload directory
+├── VPS_DEPLOYMENT.md     # VPS deployment guide
+└── DOCKER_DEPLOYMENT.md  # Docker deployment guide
 ```
 
-## ⚠️ Important Notes
+## 🧪 Health Monitoring
 
-1. **First Run**: The service will download OCR models on first startup (may take 5-10 minutes)
-2. **File Size**: Maximum file size is 16MB
-3. **Supported Formats**: Currently only PDF files are supported
-4. **Memory Usage**: Large PDFs may require significant memory
-5. **Temporary Files**: Files are automatically cleaned up after processing
+The service includes health check endpoints that can be used for monitoring:
 
-## 🐛 Troubleshooting
+```bash
+# Check service status
+curl http://localhost:5000/
+
+# Docker health check is automatically configured
+docker ps  # Shows health status
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **PaddleOCR Installation Failed**
+1. **Memory Issues**: OCR processing requires significant memory. Ensure at least 2GB RAM is available.
 
-   ```bash
-   pip install --upgrade pip
-   pip install paddlepaddle paddleocr
-   ```
+2. **File Size Limits**: Default limit is 16MB. Larger files will be rejected with a 413 error.
 
-2. **PyMuPDF Installation Issues**
+3. **Language Support**: Currently supports English (`en`) and Vietnamese (`vi`) only.
 
-   ```bash
-   pip install --upgrade pymupdf
-   ```
+4. **PDF Compatibility**: The service works with standard PDF files. Scanned images within PDFs are processed via OCR.
 
-3. **Memory Issues with Large PDFs**
+### Logs
 
-   - Reduce PDF file size
-   - Increase system memory
-   - Process pages in batches
+View service logs:
+```bash
+# Docker logs
+docker logs ocr-service
 
-4. **Model Download Issues**
-   - Ensure stable internet connection
-   - Clear PaddleOCR cache: `~/.paddleocr/`
-
-### Error Responses
-
-The API returns detailed error messages:
-
-```json
-{
-  "success": false,
-  "error": "Error type",
-  "message": "Detailed error message",
-  "execution_time_seconds": 0.123,
-  "timestamp": "2024-01-15T10:30:45.123456"
-}
+# Direct Python execution
+python ocr-api.py  # Logs printed to console
 ```
 
-## 📊 Performance
+## 🤝 Contributing
 
-- **Average processing time**: 2-5 seconds per page
-- **Accuracy**: High for clear, well-formatted documents
-- **Supported languages**: English and Vietnamese
-- **Maximum file size**: 16MB
-- **Concurrent requests**: Supported (Flask threaded mode)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## 🤝 Support
+## 📄 License
 
-For issues or questions:
+This project is open source. Please check the license file for details.
 
+## 📞 Support
+
+For issues and questions:
 1. Check the troubleshooting section
-2. Review the error messages in the API response
-3. Check the console logs where the service is running
+2. Review the API specifications in `api-specs.md`
+3. Open an issue on the repository
 
-## 📝 License
+## 🔄 Version History
 
-This project is open source and available under the MIT License.
+- **v1.0.2**: Current version with improved error handling and stability
+- **v1.0.1**: Added multi-language support
+- **v1.0.0**: Initial release with basic OCR functionality 
