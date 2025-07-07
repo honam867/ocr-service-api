@@ -6,6 +6,19 @@ Push: docker push jackipro1509/ocr-service:latest
 docker pull jackipro1509/ocr-service:latest
 docker run -d --name ocr-service -p 5000:5000 jackipro1509/ocr-service:latest
 
+docker-compose pull
+docker-compose down
+docker-compose up -d
+
+# DOCKER WORKFLOW (Additional steps you need)
+docker build -t ocr-service:latest .
+docker tag ocr-service:latest jackipro1509/ocr-service:latest
+docker push jackipro1509/ocr-service:latest
+
+# OPTIONAL: VERSION TAGGING
+docker tag ocr-service:latest jackipro1509/ocr-service:v1.0.1
+docker push jackipro1509/ocr-service:v1.0.1
+
 A powerful REST API service for extracting text from PDF files using PaddleOCR. Supports both English and Vietnamese languages with detailed metrics and performance information.
 
 ## 🚀 Features

@@ -2,6 +2,9 @@
 # coding: utf-8
 # @2022-04-19 20:52:24
 # vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4:
+#
+# IMPORTANT: PaddleOCR instances are created fresh for each request to avoid
+# "could not execute a primitive" errors that occur when reusing instances
 
 from flask import Flask, request, jsonify, make_response
 import os
@@ -43,36 +46,20 @@ UPLOAD_FOLDER = 'temp_uploads'
 # Create upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Initialize PaddleOCR instances lazily to avoid duplicate initialization in debug mode
-ocr_en = None
-ocr_vi = None
-
 def get_ocr_instance(language='en'):
-    """Get or initialize OCR instance for the specified language"""
-    global ocr_en, ocr_vi
-    
+    """Create a new OCR instance for the specified language"""
     try:
-        if language == 'en' and ocr_en is None:
-            logger.info("Initializing PaddleOCR for English...")
-            ocr_en = PaddleOCR(
-                lang='en',
-                use_angle_cls=True,
-                use_gpu=False
-            )
-            logger.info("PaddleOCR English instance initialized successfully")
-        elif language == 'vi' and ocr_vi is None:
-            logger.info("Initializing PaddleOCR for Vietnamese...")
-            ocr_vi = PaddleOCR(
-                lang='vi',
-                use_angle_cls=True,
-                use_gpu=False
-            )
-            logger.info("PaddleOCR Vietnamese instance initialized successfully")
-        
-        return ocr_en if language == 'en' else ocr_vi
+        logger.info(f"Creating new PaddleOCR instance for {language}...")
+        ocr_instance = PaddleOCR(
+            lang=language,
+            use_angle_cls=True,
+            use_gpu=False
+        )
+        logger.info(f"PaddleOCR {language} instance created successfully")
+        return ocr_instance
         
     except Exception as e:
-        logger.error(f"Failed to initialize PaddleOCR for {language}: {e}")
+        logger.error(f"Failed to create PaddleOCR instance for {language}: {e}")
         raise
 
 def allowed_file(filename):
@@ -104,42 +91,53 @@ def pdf_to_images(pdf_path):
 
 def perform_ocr(images, language='en'):
     """Perform OCR on images with specified language"""
-    ocr_instance = get_ocr_instance(language)
     results = []
     
-    for img_data in images:
-        page_num = img_data['page']
-        img = img_data['image']
-        
-        # Convert PIL Image to numpy array for PaddleOCR
-        img_np = np.array(img.convert('RGB'))
-        
+    # Create a new OCR instance for this request
+    ocr_instance = get_ocr_instance(language)
+    
+    try:
+        for img_data in images:
+            page_num = img_data['page']
+            img = img_data['image']
+            
+            # Convert PIL Image to numpy array for PaddleOCR
+            img_np = np.array(img.convert('RGB'))
+            
+            try:
+                # Perform OCR on the numpy array
+                result = ocr_instance.ocr(img_np)
+                
+                # Extract text from result
+                page_text = ""
+                if result and result[0]:
+                    for line in result[0]:
+                        if line and len(line) >= 2:
+                            text = line[1][0] if isinstance(line[1], (list, tuple)) else str(line[1])
+                            page_text += text + "\n"
+                
+                results.append({
+                    'page': page_num,
+                    'text': page_text.strip(),
+                    'line_count': len(page_text.strip().split('\n'))
+                })
+                
+            except Exception as e:
+                logger.error(f"OCR failed for page {page_num}: {e}")
+                results.append({
+                    'page': page_num,
+                    'text': "",
+                    'line_count': 0,
+                    'error': str(e)
+                })
+    
+    finally:
+        # Clean up the OCR instance
         try:
-            # Perform OCR on the numpy array
-            result = ocr_instance.ocr(img_np)
-            
-            # Extract text from result
-            page_text = ""
-            if result and result[0]:
-                for line in result[0]:
-                    if line and len(line) >= 2:
-                        text = line[1][0] if isinstance(line[1], (list, tuple)) else str(line[1])
-                        page_text += text + "\n"
-            
-            results.append({
-                'page': page_num,
-                'text': page_text.strip(),
-                'line_count': len(page_text.strip().split('\n'))
-            })
-            
+            del ocr_instance
+            logger.info(f"OCR instance for {language} cleaned up")
         except Exception as e:
-            logger.error(f"OCR failed for page {page_num}: {e}")
-            results.append({
-                'page': page_num,
-                'text': "",
-                'line_count': 0,
-                'error': str(e)
-            })
+            logger.warning(f"Failed to clean up OCR instance: {e}")
     
     return results
 
@@ -151,7 +149,7 @@ def home():
         'status': 'running',
         'supported_languages': ['en', 'vi'],
         'supported_formats': ['pdf'],
-        'version': '1.0.1',
+        'version': '1.0.2',
         'endpoints': {
             'extract_text': '/extract-text (POST)',
             'health': '/ (GET)'
@@ -272,7 +270,7 @@ def extract_text():
                 'timestamp': datetime.now().isoformat(),
                 'processing_info': {
                     'ocr_engine': 'PaddleOCR',
-                    'version': '1.0.1'
+                    'version': '1.0.2'
                 }
             }
             
