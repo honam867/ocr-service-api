@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ocr-service:
-    image: jackipro1509/ocr-service:latest
+    build: .
     container_name: ocr-service
     ports:
       - "5000:5000"
